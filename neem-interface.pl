@@ -4,7 +4,8 @@
 
 mem_clear_memory() :-
     drop_graph(user),
-    tf_mem_clear, mng_drop(roslog, tf).
+    tf_mem_clear, mng_drop(roslog, tf),
+    wrench_mem_clear, wrench_mng_drop.
 
 mem_episode_start(Action, TaskType, EnvOwl, EnvOwlIndiName, EnvUrdf, AgentOwl, AgentOwlIndiName, AgentUrdf) :-
     get_time(StartTime),
@@ -14,8 +15,10 @@ mem_episode_start(Action, TaskType, EnvOwl, EnvOwlIndiName, EnvUrdf, AgentOwl, A
                   StartTime) :-
     retractall(execution_agent(_)),
     tf_logger_disable,
+    wrench_logger_disable,
     mem_clear_memory,
     tf_logger_enable,
+    wrench_logger_enable,
     % load_owl('package://knowrob/owl/knowrob.owl',[namespace(knowrob)]),   % Is always loaded when knowrob starts
     load_owl(EnvOwl),
     load_owl(AgentOwl),
@@ -50,7 +53,11 @@ mem_episode_stop(NeemPath, EndTime) :-
     kb_project([
         holds(TimeInterval, soma:'hasIntervalEnd', EndTime)
     ]),
-    get_time(CurrentTime), atom_concat(NeemPath,'/',X1), atom_concat(X1,CurrentTime,X2), memorize(X2), mem_clear_memory.
+    get_time(CurrentTime),
+    atom_concat(NeemPath,'/',X1),
+    atom_concat(X1,CurrentTime,X2),
+    memorize(X2),
+    mem_clear_memory.
 
 mem_event_set_failed(Action) :- kb_project(action_failed(Action)).
 
@@ -89,6 +96,10 @@ mem_tf_get(Object, Pose) :-
 mem_tf_get(Object, Pose, Timestamp) :-
     time_scope(=(Timestamp), =(Timestamp), QScope),
     tf_get_pose(Object, Pose, QScope, _).
+
+mem_wrench_set(Object, Force, Torque, Timestamp) :-
+    time_scope(=(Timestamp), =<('Infinity'), FScope),
+    wrench_set(Object, [Force, Torque], FScope).
 
 mem_add_participant_with_role(Action, ObjectId, RoleType) :-
     kb_call(executes_task(Action, Task)),
